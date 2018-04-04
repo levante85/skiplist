@@ -1,7 +1,5 @@
 package skiplist
 
-import "fmt"
-
 const nodesForBucket = 1024 * 1024
 
 //Arena is an allocator type
@@ -29,9 +27,6 @@ func newArena() *Arena {
 //NodeFromID return the inderlying node pointer
 func (a *Arena) NodeFromID(id NodeID) *Node {
 	number := int(id) - 1
-	if number < 0 {
-		fmt.Println("num is: ", number)
-	}
 	bucket := number / nodesForBucket
 	index := number % nodesForBucket
 
@@ -41,12 +36,6 @@ func (a *Arena) NodeFromID(id NodeID) *Node {
 //ValueFromID return the inderlying node value
 func (a *Arena) ValueFromID(id NodeID) []byte {
 	number := int(id) - 1
-	if number < 0 {
-		return []byte{}
-		// should checkout why getting id 0 should never happen
-		// probably zero initialized elements in next
-	}
-
 	bucket := number / nodesForBucket
 	index := number % nodesForBucket
 
@@ -61,8 +50,8 @@ func (a *Arena) allocate(data []byte, height int) NodeID {
 	a.current++
 
 	for i := 0; i <= height; i++ {
-		node.Next = append(node.Next, NodeID(a.current+1))
 		a.current++
+		node.Next = append(node.Next, NodeID(a.current))
 		a.available--
 	}
 

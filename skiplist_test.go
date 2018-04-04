@@ -113,7 +113,7 @@ func TestRangeFind(t *testing.T) {
 
 }
 
-func BenchmarkPickHeight50(b *testing.B) {
+func BenchmarkPickHeightFast(b *testing.B) {
 	sk := New()
 	r := make([]int, b.N)
 	for n := 0; n < b.N; n++ {
@@ -121,15 +121,7 @@ func BenchmarkPickHeight50(b *testing.B) {
 	}
 }
 
-func BenchmarkPickHeightFast50(b *testing.B) {
-	sk := New()
-	r := make([]int, b.N)
-	for n := 0; n < b.N; n++ {
-		r = append(r, sk.pickHeight())
-	}
-}
-
-func BenchmarkInsertion50(b *testing.B) {
+func BenchmarkInsertion(b *testing.B) {
 	sk := New()
 	for n := 0; n < b.N; n++ {
 		for i := 0; i < 1024*128; i++ {

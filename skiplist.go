@@ -30,6 +30,10 @@ func (n *Node) height() int {
 }
 
 func (n *Node) isNotNull(a *Arena, i int) bool {
+	if id := n.Next[i]; id == 0 {
+		return false
+	}
+
 	value := a.ValueFromID(n.Next[i])
 	if size := len(value); size != 0 {
 		return true
@@ -45,6 +49,7 @@ func newNode(height int) *Node {
 // SkipList is the SkipList data structure
 type SkipList struct {
 	arena     *Arena
+	stack     []*Node
 	sentinel  *Node
 	nodeCount uint
 }
@@ -53,6 +58,7 @@ type SkipList struct {
 func New() *SkipList {
 	sk := &SkipList{
 		arena:     newArena(),
+		stack:     make([]*Node, 128),
 		sentinel:  nil,
 		nodeCount: 0,
 	}
@@ -138,7 +144,6 @@ func (s *SkipList) pickHeight() int {
 func (s *SkipList) Insert(value []byte) bool {
 	n := s.sentinel
 	h := s.sentinel.height()
-	stack := make([]*Node, h+1)
 
 	for ; h >= 0; h-- {
 		for n.isNotNull(s.arena, h) && bytes.Compare(s.arena.ValueFromID(n.Next[h]), value) < 0 {
@@ -148,21 +153,23 @@ func (s *SkipList) Insert(value []byte) bool {
 		if n.isNotNull(s.arena, h) && bytes.Equal(s.arena.ValueFromID(n.Next[h]), value) {
 			return false
 		}
-		stack[h] = n
+		s.stack[h] = n
 	}
 
 	newID := s.arena.allocate(value, s.pickHeight())
 	new := s.arena.NodeFromID(newID)
 	for s.sentinel.height() < new.height() {
-		stack = append(stack, make([]*Node, 1)...)
+		if len(s.stack) < new.height() {
+			s.stack = append(s.stack, make([]*Node, 1)...)
+		}
 		s.sentinel.Next = append(s.sentinel.Next, make([]NodeID, 1)...)
 		// basically increamenting stack and StringSk height
-		stack[s.sentinel.height()] = s.sentinel
+		s.stack[s.sentinel.height()] = s.sentinel
 	}
 
 	for i := 0; i < len(new.Next); i++ {
-		new.Next[i] = stack[i].Next[i]
-		stack[i].Next[i] = newID
+		new.Next[i] = s.stack[i].Next[i]
+		s.stack[i].Next[i] = newID
 	}
 
 	s.nodeCount++
