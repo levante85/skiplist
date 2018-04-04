@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
+
+	"github.com/pkg/profile"
 )
 
 func TestInsert(t *testing.T) {
@@ -122,9 +124,10 @@ func BenchmarkPickHeightFast(b *testing.B) {
 }
 
 func BenchmarkInsertion(b *testing.B) {
+	defer profile.Start(profile.MemProfile).Stop()
 	sk := New()
 	for n := 0; n < b.N; n++ {
-		for i := 0; i < 1024*128; i++ {
+		for i := 0; i < 1024*24; i++ {
 			sk.Insert([]byte(fmt.Sprintf("%v", i)))
 		}
 	}

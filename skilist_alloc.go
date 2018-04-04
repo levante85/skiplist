@@ -1,6 +1,6 @@
 package skiplist
 
-const nodesForBucket = 1024 * 1024
+const nodesForBucket = 1024 * 128
 
 //Arena is an allocator type
 type Arena struct {
