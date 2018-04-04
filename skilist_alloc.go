@@ -51,6 +51,7 @@ func (a *Arena) allocate(data []byte, height int) NodeID {
 
 	for i := 0; i <= height; i++ {
 		a.current++
+		// good candidate for optimization
 		node.Next = append(node.Next, NodeID(a.current))
 		a.available--
 	}
