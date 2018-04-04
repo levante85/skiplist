@@ -9,9 +9,12 @@ import (
 	"math/rand"
 )
 
+//NodeID rapresent a pointer
+type NodeID int
+
 //Node is the main type contained inside the StringSk
 type Node struct {
-	Next  []*Node
+	Next  []NodeID
 	Value []byte
 }
 
@@ -26,19 +29,43 @@ func (n *Node) height() int {
 	return h - 1
 }
 
+func (n *Node) isNotNull(a *Arena, i int) bool {
+	if id := n.Next[i]; id == 0 {
+		return false
+	}
+
+	value := a.ValueFromID(n.Next[i])
+	if size := len(value); size != 0 {
+		return true
+	}
+
+	return false
+}
+
 func newNode(height int) *Node {
-	return &Node{Next: make([]*Node, height)}
+	return &Node{Next: make([]NodeID, height)}
 }
 
 // SkipList is the SkipList data structure
 type SkipList struct {
+	arena     *Arena
+	stack     []*Node
 	sentinel  *Node
 	nodeCount uint
 }
 
 //New creates new SkipList
 func New() *SkipList {
-	return &SkipList{&Node{Next: make([]*Node, 1)}, 0}
+	sk := &SkipList{
+		arena:     newArena(),
+		stack:     make([]*Node, 128),
+		sentinel:  nil,
+		nodeCount: 0,
+	}
+
+	sk.sentinel = sk.arena.NodeFromID(sk.arena.allocate([]byte{}, 1))
+
+	return sk
 }
 
 // Size returns the nodeCount of Nodes in the StringSk
@@ -56,8 +83,8 @@ func (s *SkipList) findPrev(value []byte) *Node {
 	n := s.sentinel
 	h := n.height()
 	for ; h >= 0; h-- {
-		for n.Next[h] != nil && bytes.Compare(n.Next[h].Value, value) < 0 {
-			n = n.Next[h]
+		for n.isNotNull(s.arena, h) && bytes.Compare(s.arena.ValueFromID(n.Next[h]), value) < 0 {
+			n = s.arena.NodeFromID(n.Next[h])
 		}
 	}
 
@@ -68,7 +95,7 @@ func (s *SkipList) findPrev(value []byte) *Node {
 // true if the value was found false if it wasnt' found
 func (s *SkipList) Find(value []byte) bool {
 	n := s.findPrev(value)
-	if n.Next[0] != nil && bytes.Equal(n.Next[0].Value, value) {
+	if n.isNotNull(s.arena, 0) && bytes.Equal(s.arena.ValueFromID(n.Next[0]), value) {
 		return true
 	}
 
@@ -82,15 +109,18 @@ func (s *SkipList) Find(value []byte) bool {
 // a bigger value is found or there are no more elements on the list
 func (s SkipList) RangeFind(start []byte, end []byte) (ok bool, found [][]byte) {
 	n := s.findPrev(start)
-	if n.Next[0] != nil && bytes.Equal(n.Next[0].Value, start) {
-		for ; n.Next[0] != nil; n = n.Next[0] {
-			found = append(found, n.Next[0].Value)
-			if bytes.Equal(n.Next[0].Value, end) {
+	if n.isNotNull(s.arena, 0) && bytes.Equal(s.arena.ValueFromID(n.Next[0]), start) {
+		for ; n.isNotNull(s.arena, 0); n = s.arena.NodeFromID(n.Next[0]) {
+			value := s.arena.ValueFromID(n.Next[0])
+			found = append(found, value)
+
+			if bytes.Equal(value, end) {
 				return true, found
 			}
-			if bytes.Compare(n.Next[0].Value, end) > 0 {
-				return false, found
-			}
+
+			//if bytes.Compare(value, end) == 0 {
+			//	return false, found
+			//}
 		}
 	}
 
@@ -116,30 +146,32 @@ func (s *SkipList) pickHeight() int {
 func (s *SkipList) Insert(value []byte) bool {
 	n := s.sentinel
 	h := s.sentinel.height()
-	stack := make([]*Node, h+1)
 
 	for ; h >= 0; h-- {
-		for n.Next[h] != nil && bytes.Compare(n.Next[h].Value, value) < 0 {
-			n = n.Next[h]
+		for n.isNotNull(s.arena, h) && bytes.Compare(s.arena.ValueFromID(n.Next[h]), value) < 0 {
+			n = s.arena.NodeFromID(n.Next[h])
+
 		}
-		if n.Next[h] != nil && bytes.Equal(n.Next[h].Value, value) {
+		if n.isNotNull(s.arena, h) && bytes.Equal(s.arena.ValueFromID(n.Next[h]), value) {
 			return false
 		}
-		stack[h] = n
+		s.stack[h] = n
 	}
 
-	new := newNode(s.pickHeight())
-	new.Value = value
+	newID := s.arena.allocate(value, s.pickHeight())
+	new := s.arena.NodeFromID(newID)
 	for s.sentinel.height() < new.height() {
-		stack = append(stack, make([]*Node, 1)...)
-		s.sentinel.Next = append(s.sentinel.Next, make([]*Node, 1)...)
+		if len(s.stack) < new.height() {
+			s.stack = append(s.stack, make([]*Node, 1)...)
+		}
+		s.sentinel.Next = append(s.sentinel.Next, make([]NodeID, 1)...)
 		// basically increamenting stack and StringSk height
-		stack[s.sentinel.height()] = s.sentinel
+		s.stack[s.sentinel.height()] = s.sentinel
 	}
 
 	for i := 0; i < len(new.Next); i++ {
-		new.Next[i] = stack[i].Next[i]
-		stack[i].Next[i] = new
+		new.Next[i] = s.stack[i].Next[i]
+		s.stack[i].Next[i] = newID
 	}
 
 	s.nodeCount++
@@ -153,12 +185,14 @@ func (s *SkipList) Remove(value []byte) (removed bool) {
 	h := s.sentinel.height()
 
 	for ; h >= 0; h-- {
-		for n.Next[h] != nil && bytes.Compare(n.Next[h].Value, value) < 0 {
-			n = n.Next[h]
+		for n.isNotNull(s.arena, h) && bytes.Compare(s.arena.ValueFromID(n.Next[h]), value) < 0 {
+			n = s.arena.NodeFromID(n.Next[h])
+
 		}
-		if n.Next[h] != nil && bytes.Equal(n.Next[h].Value, value) {
-			n.Next[h] = n.Next[h].Next[h]
-			if n == s.sentinel && n.Next[h] == nil {
+		if n.isNotNull(s.arena, h) && bytes.Equal(s.arena.ValueFromID(n.Next[h]), value) {
+			next := s.arena.NodeFromID(n.Next[h])
+			n.Next[h] = next.Next[h]
+			if n == s.sentinel && n.isNotNull(s.arena, h) {
 				s.sentinel.Next = s.sentinel.Next[:s.Height()]
 			}
 

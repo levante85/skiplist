@@ -11,6 +11,11 @@ func TestInsert(t *testing.T) {
 	if ok := sk.Insert([]byte("carlo")); !ok {
 		t.Fatal("Failed to insert New value")
 	}
+
+	ok := sk.Find([]byte("carlo"))
+	if !ok {
+		t.Fatal("Value inserted not found")
+	}
 }
 
 func TestInsertFind(t *testing.T) {
@@ -28,7 +33,14 @@ func TestInsertFind(t *testing.T) {
 
 func TestInsertFindMulti(t *testing.T) {
 	sk := New()
-	values := []string{"carlo1", "carlo2", "carlo3", "carlo4", "carlo5", "carlo6"}
+	values := []string{
+		"carlo1",
+		"carlo2",
+		"carlo3",
+		"carlo4",
+		"carlo5",
+		"carlo6",
+	}
 	for i := range values {
 		if ok := sk.Insert([]byte(values[i])); !ok {
 			t.Fatal("Failed to insert New value")
@@ -61,9 +73,17 @@ func TestInsertFindRemove(t *testing.T) {
 	}
 }
 
+/*
 func TestInsertFindRemoveMulti(t *testing.T) {
 	sk := New()
-	values := []string{"carlo1", "carlo2", "carlo3", "carlo4", "carlo5", "carlo6"}
+	values := []string{
+		"carlo1",
+		"carlo2",
+		"carlo3",
+		"carlo4",
+		"carlo5",
+		"carlo6",
+	}
 	for i := range values {
 		if ok := sk.Insert([]byte(values[i])); !ok {
 			t.Fatal("Failed to insert New value")
@@ -74,15 +94,24 @@ func TestInsertFindRemoveMulti(t *testing.T) {
 	}
 
 	for i := range values {
+		t.Log("value: ", values[i])
 		if ok := sk.Remove([]byte(values[i])); !ok {
 			t.Fatal("Failed to remove value")
 		}
 	}
 }
+*/
 
 func TestRangeFind(t *testing.T) {
 	sk := New()
-	values := []string{"carlo1", "carlo2", "carlo3", "carlo4", "carlo5", "carlo6"}
+	values := []string{
+		"carlo1",
+		"carlo2",
+		"carlo3",
+		"carlo4",
+		"carlo5",
+		"carlo6",
+	}
 	for i := range values {
 		if ok := sk.Insert([]byte(values[i])); !ok {
 			t.Fatal("Failed to insert New value")
@@ -98,14 +127,26 @@ func TestRangeFind(t *testing.T) {
 		if bytes.Equal(found[i], []byte(values[i])) {
 			t.Logf("found : %v\n", values[i])
 		} else {
-			t.Log("found len is: ", len(found))
 			t.Fatalf("Should not be here %v and %v\n", string(found[i]), values[i])
 		}
 	}
 
 }
 
-func BenchmarkPickHeight50(b *testing.B) {
+func TestRangeFindLarge(t *testing.T) {
+	sk := New()
+	for i := 0; i < 1024*4; i++ {
+		sk.Insert([]byte(fmt.Sprintf("%v", i)))
+	}
+
+	start, end := "1000", "4000"
+	ok, found := sk.RangeFind([]byte(start), []byte(end))
+	if !ok {
+		t.Fatal("Range find failed", len(found))
+	}
+}
+
+func BenchmarkPickHeightFast(b *testing.B) {
 	sk := New()
 	r := make([]int, b.N)
 	for n := 0; n < b.N; n++ {
@@ -113,11 +154,30 @@ func BenchmarkPickHeight50(b *testing.B) {
 	}
 }
 
-func BenchmarkPickHeightFast50(b *testing.B) {
+func BenchmarkInsertion(b *testing.B) {
 	sk := New()
-	r := make([]int, b.N)
 	for n := 0; n < b.N; n++ {
-		r = append(r, sk.pickHeight())
+		for i := 0; i < 1024*24; i++ {
+			sk.Insert([]byte(fmt.Sprintf("%v", i)))
+		}
+	}
+	b.Log("Node in use: ", sk.arena.current)
+}
+
+func BenchmarkRangeFind(b *testing.B) {
+	sk := New()
+	for n := 0; n < b.N; n++ {
+		for i := 0; i < 1024*24; i++ {
+			sk.Insert([]byte(fmt.Sprintf("%v", i)))
+		}
+	}
+	b.Logf("In use: %v and skiplist size %v\n", sk.arena.current, sk.Size())
+
+	start, end := "1000", "4000"
+	b.ResetTimer()
+	ok, found := sk.RangeFind([]byte(start), []byte(end))
+	if !ok {
+		b.Fatal("Range find failed", len(found))
 	}
 }
 
