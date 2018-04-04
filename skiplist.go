@@ -113,12 +113,14 @@ func (s SkipList) RangeFind(start []byte, end []byte) (ok bool, found [][]byte) 
 		for ; n.isNotNull(s.arena, 0); n = s.arena.NodeFromID(n.Next[0]) {
 			value := s.arena.ValueFromID(n.Next[0])
 			found = append(found, value)
+
 			if bytes.Equal(value, end) {
 				return true, found
 			}
-			if bytes.Compare(value, end) > 0 {
-				return false, found
-			}
+
+			//if bytes.Compare(value, end) == 0 {
+			//	return false, found
+			//}
 		}
 	}
 
