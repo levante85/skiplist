@@ -2,6 +2,7 @@ package skiplist
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 )
 
@@ -117,5 +118,14 @@ func BenchmarkPickHeightFast50(b *testing.B) {
 	r := make([]int, b.N)
 	for n := 0; n < b.N; n++ {
 		r = append(r, sk.pickHeight())
+	}
+}
+
+func BenchmarkInsertion50(b *testing.B) {
+	sk := New()
+	for n := 0; n < b.N; n++ {
+		for i := 0; i < 1024*128; i++ {
+			sk.Insert([]byte(fmt.Sprintf("%v", i)))
+		}
 	}
 }
