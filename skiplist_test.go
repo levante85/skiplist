@@ -129,3 +129,19 @@ func BenchmarkInsertion50(b *testing.B) {
 		}
 	}
 }
+
+func BenchmarkRangeFind(b *testing.B) {
+	sk := New()
+	for i := 0; i < 1024*4; i++ {
+		sk.Insert([]byte(fmt.Sprintf("%v", i)))
+	}
+
+	start, end := []byte("1000"), []byte("4000")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		ok, f := sk.RangeFind(start, end)
+		if !ok {
+			b.Fatal("Failed range find with size: ", len(f))
+		}
+	}
+}
