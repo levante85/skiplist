@@ -125,7 +125,6 @@ func TestRangeFind(t *testing.T) {
 
 	for i := range found {
 		if bytes.Equal(found[i], []byte(values[i])) {
-			t.Logf("found : %v\n", values[i])
 		} else {
 			t.Fatalf("Should not be here %v and %v\n", string(found[i]), values[i])
 		}
@@ -162,23 +161,6 @@ func BenchmarkInsertion(b *testing.B) {
 		}
 	}
 	b.Log("Node in use: ", sk.arena.current)
-}
-
-func BenchmarkRangeFind(b *testing.B) {
-	sk := New()
-	for n := 0; n < b.N; n++ {
-		for i := 0; i < 1024*24; i++ {
-			sk.Insert([]byte(fmt.Sprintf("%v", i)))
-		}
-	}
-	b.Logf("In use: %v and skiplist size %v\n", sk.arena.current, sk.Size())
-
-	start, end := "1000", "4000"
-	b.ResetTimer()
-	ok, found := sk.RangeFind([]byte(start), []byte(end))
-	if !ok {
-		b.Fatal("Range find failed", len(found))
-	}
 }
 
 func BenchmarkInsertion50(b *testing.B) {
