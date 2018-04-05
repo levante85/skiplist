@@ -1,4 +1,4 @@
-package skiplist
+package store
 
 import (
 	"bytes"
