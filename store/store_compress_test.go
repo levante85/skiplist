@@ -6,7 +6,7 @@ var data = "Lorem Ipsum is simply dummy text of the printing and typesetting ind
 
 func TestGzipReadWrite(t *testing.T) {
 	var comp *Gzip = NewGzip()
-	defer comp.Close()
+	//defer comp.Close()
 	encoded, err := comp.Encode([]byte(data))
 	if err != nil {
 		t.Fatal(err)
@@ -22,7 +22,7 @@ func TestGzipReadWrite(t *testing.T) {
 	}
 }
 
-func BenchmarkGzipWrite(b *testing.B) {
+func BenchmarkGzipEncode(b *testing.B) {
 	var comp *Gzip = NewGzip()
 	//defer comp.Close()
 	for i := 0; i < b.N; i++ {
@@ -33,9 +33,101 @@ func BenchmarkGzipWrite(b *testing.B) {
 	}
 }
 
-func BenchmarkGzipRead(b *testing.B) {
+func BenchmarkGzipDecode(b *testing.B) {
 	var comp *Gzip = NewGzip()
 	//defer comp.Close()
+	encoded, err := comp.Encode([]byte(data))
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := comp.Decode(encoded)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+
+}
+
+func TestLz4ReadWrite(t *testing.T) {
+	comp := NewLz4()
+	//defer comp.Close()
+	encoded, err := comp.Encode([]byte(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	decoded, err := comp.Decode(encoded)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(decoded) != data {
+		t.Fatal("Failed origin and decompressed data differ!")
+	}
+}
+
+func BenchmarkLz4Encode(b *testing.B) {
+	var comp *Lz4 = NewLz4()
+	//defer comp.Close()
+	for i := 0; i < b.N; i++ {
+		_, err := comp.Encode([]byte(data))
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkLz4Decode(b *testing.B) {
+	var comp *Lz4 = NewLz4()
+	//defer comp.Close()
+	encoded, err := comp.Encode([]byte(data))
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := comp.Decode(encoded)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+
+}
+
+func TestSnappyReadWrite(t *testing.T) {
+	comp := NewSnappy()
+	//defer comp.Close()
+	encoded, err := comp.Encode([]byte(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	decoded, err := comp.Decode(encoded)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(decoded) != data {
+		t.Fatal("Failed origin and decompressed data differ!")
+	}
+}
+
+func BenchmarkSnappyEncode(b *testing.B) {
+	comp := NewSnappy()
+	for i := 0; i < b.N; i++ {
+		_, err := comp.Encode([]byte(data))
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkSnappyDecode(b *testing.B) {
+	comp := NewSnappy()
 	encoded, err := comp.Encode([]byte(data))
 	if err != nil {
 		b.Fatal(err)
